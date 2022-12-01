@@ -13,9 +13,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Days" />
-    <Folder Include="Input" />
-  </ItemGroup>
-
 </Project>
