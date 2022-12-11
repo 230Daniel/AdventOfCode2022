@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace AdventOfCode2022.Days;
 
@@ -9,6 +8,86 @@ public class Day11 : Day
 
     protected override object PartOne(string[] input)
     {
+        var monkeys = ParseMonkeys(input);
+
+        for (var i = 0; i < 20; i++)
+        {
+            Console.WriteLine(i);
+            foreach (var monkey in monkeys)
+            {
+                foreach (var item in monkey.Items.ToArray())
+                {
+                    monkey.Inspections += 1;
+                    var operandOne = monkey.OperandOne ?? item;
+                    var operandTwo = monkey.OperandTwo ?? item;
+                    var result = monkey.Operation switch
+                    {
+                        "*" => operandOne * operandTwo,
+                        "+" => operandOne + operandTwo,
+                        "-" => operandOne - operandTwo,
+                        "/" => operandOne / operandTwo,
+                        _ => throw new Exception($"Unknown operand {monkey.Operation}")
+                    };
+
+                    result /= 3;
+                    var targetMonkey = monkeys[result % monkey.Test == 0 ? monkey.MonkeyIfTrue : monkey.MonkeyIfFalse];
+
+                    targetMonkey.Items.Add(result);
+                    monkey.Items.Remove(item);
+                }
+            }
+        }
+
+        var mostActiveMonkeys = monkeys.OrderByDescending(x => x.Inspections).ToArray();
+        return mostActiveMonkeys[0].Inspections * mostActiveMonkeys[1].Inspections;
+    }
+
+    protected override object PartTwo(string[] input)
+    {
+        var monkeys = ParseMonkeys(input);
+
+        var p = 1;
+        foreach (var monkey in monkeys)
+        {
+            p *= monkey.Test;
+        }
+        Console.WriteLine($"P: {p}");
+
+        for (var i = 0; i < 10000; i++)
+        {
+            // Console.WriteLine(i);
+            foreach (var monkey in monkeys)
+            {
+                foreach (var item in monkey.PartTwoItems.ToArray())
+                {
+                    monkey.Inspections += 1;
+                    var operandOne = monkey.OperandOne ?? item;
+                    var operandTwo = monkey.OperandTwo ?? item;
+                    var result = monkey.Operation switch
+                    {
+                        "*" => operandOne * operandTwo,
+                        "+" => operandOne + operandTwo,
+                        "-" => operandOne - operandTwo,
+                        "/" => operandOne / operandTwo,
+                        _ => throw new Exception($"Unknown operand {monkey.Operation}")
+                    };
+
+                    result %= p;
+
+                    var targetMonkey = monkeys[result % monkey.Test == 0 ? monkey.MonkeyIfTrue : monkey.MonkeyIfFalse];
+
+                    targetMonkey.PartTwoItems.Add(result);
+                    monkey.PartTwoItems.Remove(item);
+                }
+            }
+        }
+
+        var mostActiveMonkeys = monkeys.OrderByDescending(x => x.Inspections).ToArray();
+        return new BigInteger(mostActiveMonkeys[0].Inspections) * new BigInteger(mostActiveMonkeys[1].Inspections);
+    }
+
+    private List<Monkey> ParseMonkeys(string[] input)
+    {
         var monkeys = new List<Monkey>();
 
         Monkey currentMonkey = null;
@@ -16,12 +95,12 @@ public class Day11 : Day
         {
             if (line.StartsWith("Monkey"))
             {
-                var id = new string(line.Split()[1].TakeWhile(x => x != ':').ToArray());
-                currentMonkey = new Monkey(int.Parse(id));
+                currentMonkey = new Monkey();
             }
             else if (line.StartsWith("  Starting items:"))
             {
                 currentMonkey.Items = new string(line.Skip(18).ToArray()).Split(", ").Select(int.Parse).ToList();
+                currentMonkey.PartTwoItems = currentMonkey.Items.Select(x => new BigInteger(x)).ToList();
             }
             else if (line.StartsWith("  Operation:"))
             {
@@ -52,53 +131,19 @@ public class Day11 : Day
         }
         monkeys.Add(currentMonkey);
 
-        for (var i = 0; i < 20; i++)
-        {
-            Console.WriteLine(i);
-            foreach (var monkey in monkeys)
-            {
-                foreach (var item in monkey.Items.ToArray())
-                {
-                    monkey.Inspections += 1;
-                    var operandOne = monkey.OperandOne ?? item;
-                    var operandTwo = monkey.OperandTwo ?? item;
-                    var result = monkey.Operation switch
-                    {
-                        "*" => operandOne * operandTwo,
-                        "+" => operandOne + operandTwo,
-                        "-" => operandOne - operandTwo,
-                        "/" => operandOne / operandTwo,
-                        _ => throw new Exception($"Unknwon operand {monkey.Operation}")
-                    };
-
-                    result /= 3;
-                    var targetMonkey = monkeys[result % monkey.Test == 0 ? monkey.MonkeyIfTrue : monkey.MonkeyIfFalse];
-
-                    targetMonkey.Items.Add(result);
-                    monkey.Items.Remove(item);
-                }
-            }
-        }
-
-        var mostActiveMonkeys = monkeys.OrderByDescending(x => x.Inspections).ToArray();
-        return mostActiveMonkeys[0].Inspections * mostActiveMonkeys[1].Inspections;
+        return monkeys;
     }
 
     private class Monkey
     {
-        public int Id { get; }
         public List<int> Items { get; set; }
+        public List<BigInteger> PartTwoItems { get; set; }
         public int? OperandOne { get; set; }
         public int? OperandTwo { get; set; }
         public string Operation { get; set; }
-        public int Test { get; set;  }
-        public int MonkeyIfTrue { get; set;  }
+        public int Test { get; set; }
+        public int MonkeyIfTrue { get; set; }
         public int MonkeyIfFalse { get; set; }
-        public int Inspections { get; set; }
-
-        public Monkey(int id)
-        {
-            Id = id;
-        }
+        public uint Inspections { get; set; }
     }
 }
