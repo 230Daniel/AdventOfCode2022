@@ -1,0 +1,104 @@
+﻿using System.Diagnostics;
+using System.Numerics;
+
+namespace AdventOfCode2022.Days;
+
+public class Day11 : Day
+{
+    public Day11() : base(11) { }
+
+    protected override object PartOne(string[] input)
+    {
+        var monkeys = new List<Monkey>();
+
+        Monkey currentMonkey = null;
+        foreach (var line in input)
+        {
+            if (line.StartsWith("Monkey"))
+            {
+                var id = new string(line.Split()[1].TakeWhile(x => x != ':').ToArray());
+                currentMonkey = new Monkey(int.Parse(id));
+            }
+            else if (line.StartsWith("  Starting items:"))
+            {
+                currentMonkey.Items = new string(line.Skip(18).ToArray()).Split(", ").Select(int.Parse).ToList();
+            }
+            else if (line.StartsWith("  Operation:"))
+            {
+                var operationString = new string(line.Skip(19).ToArray());
+                var operandOne = operationString.Split()[0];
+                var operandTwo = operationString.Split()[2];
+
+                currentMonkey.OperandOne = operandOne == "old" ? null : int.Parse(operandOne);
+                currentMonkey.OperandTwo = operandTwo == "old" ? null : int.Parse(operandTwo);
+                currentMonkey.Operation = operationString.Split()[1];
+            }
+            else if (line.StartsWith("  Test:"))
+            {
+                currentMonkey.Test = int.Parse(line.Split().Last());
+            }
+            else if (line.StartsWith("    If true:"))
+            {
+                currentMonkey.MonkeyIfTrue = int.Parse(line.Split().Last());
+            }
+            else if (line.StartsWith("    If false:"))
+            {
+                currentMonkey.MonkeyIfFalse = int.Parse(line.Split().Last());
+            }
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                monkeys.Add(currentMonkey);
+            }
+        }
+        monkeys.Add(currentMonkey);
+
+        for (var i = 0; i < 20; i++)
+        {
+            Console.WriteLine(i);
+            foreach (var monkey in monkeys)
+            {
+                foreach (var item in monkey.Items.ToArray())
+                {
+                    monkey.Inspections += 1;
+                    var operandOne = monkey.OperandOne ?? item;
+                    var operandTwo = monkey.OperandTwo ?? item;
+                    var result = monkey.Operation switch
+                    {
+                        "*" => operandOne * operandTwo,
+                        "+" => operandOne + operandTwo,
+                        "-" => operandOne - operandTwo,
+                        "/" => operandOne / operandTwo,
+                        _ => throw new Exception($"Unknwon operand {monkey.Operation}")
+                    };
+
+                    result /= 3;
+                    var targetMonkey = monkeys[result % monkey.Test == 0 ? monkey.MonkeyIfTrue : monkey.MonkeyIfFalse];
+
+                    targetMonkey.Items.Add(result);
+                    monkey.Items.Remove(item);
+                }
+            }
+        }
+
+        var mostActiveMonkeys = monkeys.OrderByDescending(x => x.Inspections).ToArray();
+        return mostActiveMonkeys[0].Inspections * mostActiveMonkeys[1].Inspections;
+    }
+
+    private class Monkey
+    {
+        public int Id { get; }
+        public List<int> Items { get; set; }
+        public int? OperandOne { get; set; }
+        public int? OperandTwo { get; set; }
+        public string Operation { get; set; }
+        public int Test { get; set;  }
+        public int MonkeyIfTrue { get; set;  }
+        public int MonkeyIfFalse { get; set; }
+        public int Inspections { get; set; }
+
+        public Monkey(int id)
+        {
+            Id = id;
+        }
+    }
+}
